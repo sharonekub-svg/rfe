@@ -1,0 +1,11 @@
+# Congress-mirror daily run — US market opens 9:30 AM America/New_York.
+# Markets are closed on weekends, so run Monday-Friday (note 1-5 below).
+#
+# 1) Edit the absolute paths to match where you cloned the repo + your venv.
+# 2) Install: crontab crontab.example   (or paste the line into `crontab -e`)
+# 3) Make sure CRON_TZ matches the exchange timezone.
+
+CRON_TZ=America/New_York
+
+# min hour dom mon dow   command
+30   9    *   *   1-5    cd /ABSOLUTE/PATH/to/rfe && /ABSOLUTE/PATH/to/rfe/.venv/bin/python scheduler/run_daily.py >> state/cron.log 2>&1
