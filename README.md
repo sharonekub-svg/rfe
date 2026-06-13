@@ -75,7 +75,10 @@ trading days near market open — no always-on machine required. To enable it:
 2. In the repo, go to **Settings → Secrets and variables → Actions** and add
    these **repository secrets**:
    - `ALPACA_API_KEY_ID`, `ALPACA_API_SECRET_KEY`
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM`, `EMAIL_TO`
+   - The scheduled workflow runs `daily --no-email`, so SMTP secrets are **not
+     required**. If you switch the workflow back to `daily` (with email), also
+     add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
+     `EMAIL_FROM`, `EMAIL_TO`.
 3. (Optional) Under the **Variables** tab add `DRY_RUN` = `true` to test without
    placing orders; remove it (or set `false`) to place real paper orders.
 4. Open the **Actions** tab → **daily-mirror** → **Run workflow** to test now,

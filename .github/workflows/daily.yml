@@ -35,12 +35,6 @@ jobs:
       TOP_N_LEADERS: "3"
       # Flip to "false" in the repo (or via a secret) to place real paper orders.
       DRY_RUN: ${{ vars.DRY_RUN || 'false' }}
-      SMTP_HOST: ${{ secrets.SMTP_HOST }}
-      SMTP_PORT: ${{ secrets.SMTP_PORT }}
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-      EMAIL_TO: ${{ secrets.EMAIL_TO }}
     steps:
       - uses: actions/checkout@v4
 
@@ -66,9 +60,9 @@ jobs:
             echo "open=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run daily mirror + email
+      - name: Run daily mirror (no email)
         if: steps.clock.outputs.open == 'true'
-        run: python -m congress_mirror.cli daily
+        run: python -m congress_mirror.cli daily --no-email
 
       - name: Persist disclosure state
         if: steps.clock.outputs.open == 'true'
