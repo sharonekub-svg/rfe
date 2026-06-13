@@ -1,7 +1,11 @@
 import datetime as dt
 
 from congress_mirror.config import Settings
-from congress_mirror.mirror import build_plan, net_open_positions
+from congress_mirror.mirror import (
+    build_multi_leader_plan,
+    build_plan,
+    net_open_positions,
+)
 from tests.conftest import make_trade
 
 
@@ -45,3 +49,45 @@ def test_build_plan_filters_untradable():
     cfg = Settings()
     plan = build_plan(trades, 100000.0, cfg=cfg, tradable={"AAA"})
     assert {p.symbol for p in plan} == {"AAA"}
+
+
+def test_multi_leader_splits_capital_equally_across_leaders():
+    day = dt.date(2025, 6, 1)
+    # Leader A trades a much larger dollar amount than leader B, but with equal
+    # diversification each leader should command the same slice of capital.
+    leader_a = [make_trade("AAA", "buy", day, amount=900000, pid="A")]
+    leader_b = [make_trade("BBB", "buy", day, amount=10000, pid="B")]
+    cfg = Settings(deploy_fraction=1.0, max_position_fraction=1.0)
+    equity = 100000.0
+    plan = build_multi_leader_plan([leader_a, leader_b], equity, cfg=cfg)
+    by = {p.symbol: p for p in plan}
+
+    # Despite A's far larger disclosed size, each single-name leader gets ~half.
+    assert abs(by["AAA"].target_notional - 50000.0) < 1.0
+    assert abs(by["BBB"].target_notional - 50000.0) < 1.0
+    assert sum(p.target_notional for p in plan) <= equity * cfg.deploy_fraction + 1.0
+
+
+def test_multi_leader_merges_shared_names_and_caps():
+    day = dt.date(2025, 6, 1)
+    # Both leaders hold MSFT; their slices should add up, then hit the cap.
+    leader_a = [make_trade("MSFT", "buy", day, amount=10000, pid="A")]
+    leader_b = [make_trade("MSFT", "buy", day, amount=10000, pid="B")]
+    cfg = Settings(deploy_fraction=1.0, max_position_fraction=0.15)
+    equity = 100000.0
+    plan = build_multi_leader_plan([leader_a, leader_b], equity, cfg=cfg)
+    by = {p.symbol: p for p in plan}
+
+    # Merged slice (50% + 50% = 100% of deploy) is capped at 15% of equity.
+    assert abs(by["MSFT"].target_notional - 15000.0) < 1.0
+
+
+def test_multi_leader_skips_empty_leaders():
+    day = dt.date(2025, 6, 1)
+    leader_a = [make_trade("AAA", "buy", day, amount=20000, pid="A")]
+    leader_empty = [make_trade("CCC", "sell", day, amount=5000, pid="C")]  # no open buys
+    cfg = Settings(deploy_fraction=1.0, max_position_fraction=1.0)
+    plan = build_multi_leader_plan([leader_a, leader_empty], 100000.0, cfg=cfg)
+    by = {p.symbol: p for p in plan}
+    # Only one contributing leader -> it gets the whole deploy budget.
+    assert abs(by["AAA"].target_notional - 100000.0) < 1.0

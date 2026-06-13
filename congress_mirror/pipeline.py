@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from .alpaca_client import AlpacaClient
 from .capitaltrades import CapitalTradesClient, Politician, Trade
 from .config import Settings, settings
-from .mirror import MirrorResult, execute_mirror
+from .mirror import MirrorResult, execute_multi_mirror
 from .ranking import RankedPolitician, rank_politicians
 
 
@@ -49,8 +49,8 @@ def gather_and_rank(
 @dataclass
 class DailyOutcome:
     ranked: list[RankedPolitician]
-    leader: Politician
-    leader_trades: list[Trade]
+    leaders: list[Politician]
+    leaders_trades: dict[Politician, list[Trade]]
     new_disclosures: list[Trade]
     mirror: MirrorResult
 
@@ -67,18 +67,21 @@ def run_daily(
     if not outcome.ranked:
         return None
 
-    top = outcome.ranked[0]
-    leader = top.politician
-    leader_trades = outcome.trades_by_politician.get(leader, [])
+    top = outcome.ranked[: max(1, cfg.top_n_leaders)]
+    leaders = [r.politician for r in top]
+    leaders_trades = {p: outcome.trades_by_politician.get(p, []) for p in leaders}
+    all_trades = [t for trades in leaders_trades.values() for t in trades]
 
-    new = seen_store.new_trades(leader_trades)
-    mirror = execute_mirror(alpaca, leader_trades, cfg=cfg, today=today)
-    seen_store.mark(leader_trades)
+    new = seen_store.new_trades(all_trades)
+    mirror = execute_multi_mirror(
+        alpaca, list(leaders_trades.values()), cfg=cfg, today=today
+    )
+    seen_store.mark(all_trades)
 
     return DailyOutcome(
         ranked=outcome.ranked,
-        leader=leader,
-        leader_trades=leader_trades,
+        leaders=leaders,
+        leaders_trades=leaders_trades,
         new_disclosures=new,
         mirror=mirror,
     )

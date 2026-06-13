@@ -15,7 +15,7 @@ market open, and **emails a summary**.
 | Command | Description |
 | --- | --- |
 | `rank`   | Fetch the most‑active politicians + their trailing‑year trades and rank them by amount‑weighted return. |
-| `mirror` | Build a target portfolio from the #1 performer's net open positions and place orders (respects `DRY_RUN`). |
+| `mirror` | Build a target portfolio from the **top `TOP_N_LEADERS` performers'** net open positions and place orders (respects `DRY_RUN`). |
 | `daily`  | `rank` → `mirror` → detect new disclosures → email a summary. Intended for cron. |
 | `status` | Show paper‑account equity, cash, and open positions. |
 
@@ -38,8 +38,10 @@ Fill in `.env`:
   [App Password](https://support.google.com/accounts/answer/185833) and use that
   as `SMTP_PASSWORD`.
 - **Strategy** — `DEPLOY_FRACTION`, `MAX_POSITION_FRACTION`, `MIN_TRADES_12M`,
-  and `DRY_RUN` (defaults to `true` — flip to `false` only when you're ready to
-  place paper orders).
+  `TOP_N_LEADERS` (how many top‑ranked politicians to mirror; capital is split
+  equally across them, then diversified across each one's positions — `1`
+  follows only the leader), and `DRY_RUN` (defaults to `true` — flip to `false`
+  only when you're ready to place paper orders).
 
 `.env` is git‑ignored. **Never commit real keys.**
 
@@ -96,6 +98,13 @@ leg's return is weighted by the midpoint of its disclosed amount bracket, and a
 politician's score is the amount‑weighted average return across legs. Legs whose
 prices can't be resolved are skipped; a politician with no priced legs is
 excluded. Prices come from the Alpaca market‑data API.
+
+The bot then mirrors the **top `TOP_N_LEADERS`** ranked politicians (not just
+the single best). Deployed capital is split **equally** across those leaders,
+and within each leader it's allocated proportionally to disclosed exposure;
+slices are merged per ticker and each name is capped at `MAX_POSITION_FRACTION`
+of equity. This diversifies across several top performers instead of betting on
+one.
 
 ## Safety design
 
