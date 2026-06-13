@@ -32,6 +32,7 @@ jobs:
       MAX_POSITION_FRACTION: "0.15"
       MIN_TRADES_12M: "8"
       RANK_UNIVERSE_SIZE: "40"
+      TOP_N_LEADERS: "3"
       # Flip to "false" in the repo (or via a secret) to place real paper orders.
       DRY_RUN: ${{ vars.DRY_RUN || 'false' }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}

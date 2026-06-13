@@ -53,6 +53,7 @@ class Settings:
     # Strategy
     rank_universe_size: int = _int("RANK_UNIVERSE_SIZE", 40)
     min_trades_12m: int = _int("MIN_TRADES_12M", 8)
+    top_n_leaders: int = _int("TOP_N_LEADERS", 3)
     deploy_fraction: float = _float("DEPLOY_FRACTION", 0.80)
     max_position_fraction: float = _float("MAX_POSITION_FRACTION", 0.15)
     dry_run: bool = _flag("DRY_RUN", True)

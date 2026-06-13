@@ -51,12 +51,12 @@ def _cmd_mirror(_: argparse.Namespace) -> int:
     if not outcome.ranked:
         print("Nothing to mirror — no ranked politicians.")
         return 1
-    from .mirror import execute_mirror
+    from .mirror import execute_multi_mirror
 
-    leader = outcome.ranked[0].politician
-    trades = outcome.trades_by_politician.get(leader, [])
-    result = execute_mirror(alpaca, trades)
-    print(format_mirror(result, leader.name))
+    leaders = [r.politician for r in outcome.ranked[: max(1, settings.top_n_leaders)]]
+    trades_by_leader = [outcome.trades_by_politician.get(p, []) for p in leaders]
+    result = execute_multi_mirror(alpaca, trades_by_leader)
+    print(format_mirror(result, ", ".join(p.name for p in leaders)))
     return 0
 
 
@@ -69,7 +69,7 @@ def _cmd_daily(args: argparse.Namespace) -> int:
         print("No ranked politicians today; nothing to do.")
         return 1
     subject, body = daily_summary(
-        outcome.ranked, outcome.mirror, outcome.new_disclosures, outcome.leader.name
+        outcome.ranked, outcome.mirror, outcome.new_disclosures, outcome.leaders
     )
     print(body)
     if not args.no_email:

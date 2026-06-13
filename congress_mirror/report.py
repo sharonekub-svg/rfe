@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from .capitaltrades import Trade
+from .capitaltrades import Politician, Trade
 from .mirror import MirrorResult
 from .ranking import RankedPolitician
 
@@ -21,10 +21,10 @@ def format_ranking(ranked: list[RankedPolitician], limit: int = 15) -> str:
     return "\n".join(lines)
 
 
-def format_mirror(result: MirrorResult, leader_name: str) -> str:
+def format_mirror(result: MirrorResult, leaders_label: str) -> str:
     mode = "DRY RUN — no orders placed" if result.dry_run else "LIVE (paper) — orders placed"
     lines = [
-        f"Mirroring top performer: {leader_name}",
+        f"Mirroring top performer(s): {leaders_label}",
         f"Account equity: ${result.equity:,.2f}   [{mode}]",
         "",
         f"{'Symbol':8} {'Weight':>7} {'Target $':>12}",
@@ -43,13 +43,14 @@ def format_mirror(result: MirrorResult, leader_name: str) -> str:
     return "\n".join(lines)
 
 
-def format_new_disclosures(new: list[Trade], leader_name: str) -> str:
+def format_new_disclosures(new: list[Trade]) -> str:
     if not new:
-        return f"No new disclosures for {leader_name} since last run."
-    lines = [f"New disclosures for {leader_name} ({len(new)}):"]
+        return "No new disclosures since last run."
+    lines = [f"New disclosures ({len(new)}):"]
     for t in sorted(new, key=lambda x: x.txn_date, reverse=True):
         lines.append(
-            f"  {t.txn_date.isoformat()}  {t.txn_type.upper():4} {t.ticker:6} ~${t.amount_usd:,.0f}"
+            f"  {t.txn_date.isoformat()}  {t.politician_name[:20]:20} "
+            f"{t.txn_type.upper():4} {t.ticker:6} ~${t.amount_usd:,.0f}"
         )
     return "\n".join(lines)
 
@@ -58,17 +59,19 @@ def daily_summary(
     ranked: list[RankedPolitician],
     mirror: MirrorResult,
     new: list[Trade],
-    leader_name: str,
+    leaders: list[Politician],
     when: dt.date | None = None,
 ) -> tuple[str, str]:
     when = when or dt.date.today()
-    subject = f"[Congress Mirror] {when.isoformat()} — leader {leader_name}"
+    label = ", ".join(p.name for p in leaders) if leaders else "—"
+    subject = f"[Congress Mirror] {when.isoformat()} — top {len(leaders)}: {label}"
     body = "\n\n".join(
         [
             f"Daily Congress-mirror summary for {when.isoformat()}",
-            format_new_disclosures(new, leader_name),
+            f"Mirroring top {len(leaders)} performer(s): {label}",
+            format_new_disclosures(new),
             format_ranking(ranked),
-            format_mirror(mirror, leader_name),
+            format_mirror(mirror, label),
             "Educational use only. Disclosures are delayed and approximate; not investment advice.",
         ]
     )
